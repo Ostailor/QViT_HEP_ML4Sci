@@ -122,13 +122,21 @@ def encode_token_optimized(circuit, data, nqubits):
 
 def qk_ansatz_optimized(circuit, parameters, nqubits):
     """
-    Optimized ansatz for query and key vectors.
+    Optimized ansatz for query and key vectors using available gates.
     """
-    # Combine rotations into a single U3 gate per qubit
-    for i in range(nqubits):
-        circuit.u3(theta=parameters[i], phi=parameters[nqubits + i], lam=0, qubit=i)
+    # Ensure that the parameters array has the correct length
+    assert len(parameters) >= 3 * nqubits, "Not enough parameters for the ansatz"
 
-    # Simplify entanglement layer
+    for i in range(nqubits):
+        theta = parameters[i]
+        phi = parameters[nqubits + i]
+        lam = parameters[2 * nqubits + i]
+        # Apply the equivalent of the U3 gate using rz and ry rotations
+        circuit.rz(i, theta=phi)
+        circuit.ry(i, theta=theta)
+        circuit.rz(i, theta=lam)
+
+    # Simplify the entanglement layer
     for i in range(nqubits - 1):
         circuit.cz(i, i + 1)
     circuit.cz(nqubits - 1, 0)
