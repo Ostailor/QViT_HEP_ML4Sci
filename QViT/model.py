@@ -132,9 +132,7 @@ class AttentionHead_Hybrid2(nn.Module):
         K = self.K(flat_input).reshape(*input1.shape[:2])
 
         # Compute attention weights as squared differences between Q and K
-        A = torch.empty((*input1.shape[:-1], input1.shape[-2]), device=input1.device)
-        for j in range(input1.shape[-2]):
-            A[..., j] = -(Q - K[..., j][..., None]) ** 2
+        A = -(Q.unsqueeze(-2) - K.unsqueeze(-3)) ** 2
         return self.attention(A, V)
 
 
