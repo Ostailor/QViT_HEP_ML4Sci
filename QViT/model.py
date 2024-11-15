@@ -28,7 +28,7 @@ class EncoderLayer_hybrid1(nn.Module):
         self.heads = nn.ModuleList([AttentionHead_Hybrid2(Token_Dim, self.MultiHead_Embed_Dim) for i in range(head_dimension)])
         
         # Use a quantum-based merger layer (QLayer) instead of a classical feedforward network
-        self.merger = QLayer(measure_value, [3 * Embed_Dim], int(Embed_Dim))
+        self.merger = QLayer(measure_value_optimized, [3 * Embed_Dim], int(Embed_Dim))
         
         # Apply layer normalization
         self.norm1 = nn.LayerNorm([Embed_Dim], elementwise_affine=False)
@@ -106,9 +106,9 @@ class AttentionHead_Hybrid2(nn.Module):
         self.norm = nn.LayerNorm(MultiHead_Embed_Dim, elementwise_affine=False)
         
         # Define quantum layers for query, key, and value
-        self.V = QLayer(measure_value, [3 * MultiHead_Embed_Dim], int(MultiHead_Embed_Dim))
-        self.Q = QLayer(measure_query_key, [3 * MultiHead_Embed_Dim + 1], int(MultiHead_Embed_Dim))
-        self.K = QLayer(measure_query_key, [3 * MultiHead_Embed_Dim + 1], int(MultiHead_Embed_Dim))
+        self.V = QLayer(measure_value_optimized, [3 * MultiHead_Embed_Dim], int(MultiHead_Embed_Dim))
+        self.Q = QLayer(measure_query_key_optimized, [3 * MultiHead_Embed_Dim + 1], int(MultiHead_Embed_Dim))
+        self.K = QLayer(measure_query_key_optimized, [3 * MultiHead_Embed_Dim + 1], int(MultiHead_Embed_Dim))
         
         # Attention mechanism using scaled softmax
         self.attention = lambda A, V: torch.bmm(nn.Softmax(dim=-1)(A / MultiHead_Embed_Dim ** 0.5), V)
