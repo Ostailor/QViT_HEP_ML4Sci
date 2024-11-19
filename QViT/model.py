@@ -366,13 +366,9 @@ def construct_FNN(layers, activation=nn.GELU, output_activation=None, Dropout=No
     Returns:
         nn.Sequential: Fully connected neural network.
     """
-    layer_list = []
-    for i in range(len(layers) - 1):
-        layer_list.append(nn.Linear(layers[i], layers[i + 1]))
-        if i < len(layers) - 2 or output_activation is not None:
-            layer_list.append(activation())
-        if Dropout:
-            layer_list.append(nn.Dropout(Dropout))
+    layer = [j for i in layers for j in [nn.LazyLinear(i), activation()]][:-1]
+    if Dropout:
+        layer.insert(len(layer) - 2, nn.Dropout(Dropout))
     if output_activation is not None:
-        layer_list.append(output_activation())
-    return nn.Sequential(*layer_list)
+        layer.append(output_activation())
+    return nn.Sequential(*layer)
