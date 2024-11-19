@@ -67,25 +67,27 @@ class EncoderLayer_hybrid2(nn.Module):
         self.MultiHead_Embed_Dim = Embed_Dim // head_dimension
         
         # Define attention heads with quantum-enhanced AttentionHead_Hybrid2
-        self.heads = nn.ModuleList([AttentionHead_Hybrid2(Token_Dim, self.MultiHead_Embed_Dim) for i in range(head_dimension)])
+        self.heads = nn.ModuleList(
+            [AttentionHead_Hybrid2(Token_Dim, self.MultiHead_Embed_Dim) for _ in range(head_dimension)]
+        )
         
         # Use a classical feedforward network for the merger layer
-        self.merger = construct_FNN([ff_dim, Embed_Dim], activation=nn.GELU)
+        self.merger = construct_FNN(
+            input_size=Embed_Dim, 
+            layers=[ff_dim, Embed_Dim], 
+            activation=nn.GELU
+        )
         self.norm1 = nn.LayerNorm([Embed_Dim], elementwise_affine=False)
 
     def forward(self, input1):
-        """
-        Forward pass with quantum-enhanced multi-head attention and classical feedforward network.
-
-        Args:
-            input1 (Tensor): Input tensor.
-
-        Returns:
-            Tensor: Output after applying attention and merger layers.
-        """
-        input1_norm = self.norm1(input1)  # Normalize input
-        # Concatenate output of each attention head
-        head_result = torch.cat([m(input1_norm[..., (i * self.MultiHead_Embed_Dim):((i + 1) * self.MultiHead_Embed_Dim)]) for i, m in enumerate(self.heads)], dim=-1)
+        input1_norm = self.norm1(input1)
+        head_result = torch.cat(
+            [
+                m(input1_norm[..., (i * self.MultiHead_Embed_Dim):((i + 1) * self.MultiHead_Embed_Dim)]) 
+                for i, m in enumerate(self.heads)
+            ], 
+            dim=-1
+        )
         res = self.merger(head_result) + input1  # Apply merger and add residual
         return res
 
@@ -349,7 +351,36 @@ class HViT(nn.Module):
         """
         return self.classifier(self.transformer(input1))
 
+def construct_FNN(input_size, layers, activation=nn.GELU, output_activation=None, Dropout=None):
+    """
+    Constructs a fully connected neural network (FNN) with specified activations and dropout.
 
+    Args:
+        input_size (int): Size of the input features.
+        layers (list): List specifying the size of each layer.
+        activation (nn.Module): Activation function to use.
+        output_activation (nn.Module, optional): Output activation function.
+        Dropout (float, optional): Dropout probability.
+
+    Returns:
+        nn.Sequential: Fully connected neural network.
+    """
+    layer_list = []
+    last_size = input_size
+    for size in layers:
+        layer_list.append(nn.Linear(last_size, size))
+        layer_list.append(activation())
+        last_size = size
+    if Dropout:
+        layer_list.insert(len(layer_list) - 2, nn.Dropout(Dropout))
+    if output_activation is not None:
+        layer_list.append(output_activation)
+    # Remove the last activation if not desired
+    return nn.Sequential(*layer_list[:-1])
+
+
+'''
+Old construct_FNN
 def construct_FNN(layers, activation=nn.GELU, output_activation=None, Dropout=None):
     """
     Constructs a fully connected neural network (FNN) with specified activations and dropout.
@@ -369,3 +400,4 @@ def construct_FNN(layers, activation=nn.GELU, output_activation=None, Dropout=No
     if output_activation is not None:
         layer.append(output_activation)
     return nn.Sequential(*layer)
+'''
