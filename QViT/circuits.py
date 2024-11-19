@@ -225,73 +225,30 @@ def compute_attention(alphas, norms, compute_element):
 ################################################################################ Circuits used in the second method
 
 def encode_token(circuit, data, nqubits):
-    """
-    Encodes token data into quantum states by applying rotations.
-
-    Args:
-        circuit: Quantum circuit instance.
-        data: Data to encode as rotation angles.
-        nqubits: Number of qubits to encode.
-    """
     for i in range(nqubits):
-        circuit.H(i)
         circuit.rx(i, theta=data[i])
 
 def qk_ansatz(circuit, data, parameters, nqubits):
-    """
-    Quantum circuit encoding for query and key vectors using rotations and CNOTs.
+    for i in range(nqubits):
+        circuit.ry(i, theta=parameters[i])
+    for i in range(nqubits - 1):
+        circuit.cnot(i, i + 1)
 
-    Args:
-        circuit: Quantum circuit instance.
-        data: Data to encode.
-        parameters: Parameters for rotation angles.
-        nqubits: Number of qubits.
-    """
+def v_ansatz(circuit, data, parameters, nqubits):
     for i in range(nqubits):
         circuit.rx(i, theta=parameters[i])
-    for i in range(nqubits):
-        circuit.ry(i, theta=parameters[nqubits + i])
-
-    for _ in range(2, parameters.shape[0] // nqubits + 1):
-        for i in range(nqubits - 1):
-            circuit.cnot(i, i + 1)
-        circuit.cnot(nqubits - 1, 0)
-        if _ != (parameters.shape[0] // nqubits):
-            for i in range(nqubits):
-                circuit.ry(i, theta=parameters[nqubits * (_) + i])
-        else:
-            circuit.ry(0, theta=parameters[nqubits * (_)])
+    for i in range(nqubits - 1):
+        circuit.cz(i, i + 1)
 
 def measure_query_key(data, parameters, nqubits):
-    """
-    Measures query and key encoding in the quantum circuit and returns expectation.
-
-    Args:
-        data: Data input to encode.
-        parameters: Parameters for rotation angles.
-        nqubits: Number of qubits.
-
-    Returns:
-        Real part of expectation value.
-    """
     circuit = tc.Circuit(nqubits)
     encode_token(circuit, data, nqubits)
     qk_ansatz(circuit, data, parameters, nqubits)
     return circuit.expectation_ps(z=[0]).real
 
 def measure_value(data, parameters, nqubits):
-    """
-    Measures the value encoding in the quantum circuit and returns expectations for all qubits.
-
-    Args:
-        data: Data input to encode.
-        parameters: Parameters for rotation angles.
-        nqubits: Number of qubits.
-
-    Returns:
-        Array of expectation values for each qubit.
-    """
     circuit = tc.Circuit(nqubits)
     encode_token(circuit, data, nqubits)
     v_ansatz(circuit, data, parameters, nqubits)
     return array([circuit.expectation_ps(z=[i]).real for i in range(nqubits)])
+
