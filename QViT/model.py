@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from math import sqrt
 import math
 from .parametrizations import convert_array
 from .circuits import *
@@ -25,13 +24,13 @@ class EncoderLayer_hybrid1(nn.Module):
         self.MultiHead_Embed_Dim = Embed_Dim // head_dimension
         
         # Define attention heads with quantum-enhanced AttentionHead_Hybrid2
-        self.heads = nn.ModuleList([AttentionHead_Hybrid2(Token_Dim, self.MultiHead_Embed_Dim) for i in range(head_dimension)])
+        self.heads = nn.ModuleList([AttentionHead_Hybrid2(Token_Dim, self.MultiHead_Embed_Dim) for _ in range(head_dimension)])
         
         # Use a quantum-based merger layer (QLayer) instead of a classical feedforward network
         self.merger = QLayer(measure_value, [3 * Embed_Dim], int(Embed_Dim))
         
         # Apply layer normalization
-        self.norm1 = nn.LayerNorm([Embed_Dim], elementwise_affine=False)
+        self.norm1 = nn.LayerNorm(Embed_Dim, elementwise_affine=False)
 
     def forward(self, input1):
         """
@@ -44,10 +43,18 @@ class EncoderLayer_hybrid1(nn.Module):
             Tensor: Output after applying attention and merger layers.
         """
         input1_norm = self.norm1(input1)  # Normalize input
-        # Concatenate output of each attention head along the last dimension
-        head_result = torch.cat([m(input1_norm[..., (i * self.MultiHead_Embed_Dim):((i + 1) * self.MultiHead_Embed_Dim)]) for i, m in enumerate(self.heads)], dim=-1)
+
+        # Split the input for each head
+        head_inputs = torch.chunk(input1_norm, len(self.heads), dim=-1)
+
+        # Process all heads and concatenate results
+        head_outputs = torch.cat([head(head_input) for head, head_input in zip(self.heads, head_inputs)], dim=-1)
+
         # Flatten and apply merger layer, then reshape to match input and add residual
-        res = self.merger(head_result.flatten(0, 1)).reshape(head_result.shape) + input1
+        batch_size, seq_len, embed_dim = head_outputs.shape
+        merger_input = head_outputs.reshape(batch_size * seq_len, -1)
+        merged = self.merger(merger_input).reshape(batch_size, seq_len, -1)
+        res = merged + input1
         return res
 
 
@@ -67,28 +74,31 @@ class EncoderLayer_hybrid2(nn.Module):
         self.MultiHead_Embed_Dim = Embed_Dim // head_dimension
         
         # Define attention heads with quantum-enhanced AttentionHead_Hybrid2
-        self.heads = nn.ModuleList(
-            [AttentionHead_Hybrid2(Token_Dim, self.MultiHead_Embed_Dim) for _ in range(head_dimension)]
-        )
+        self.heads = nn.ModuleList([AttentionHead_Hybrid2(Token_Dim, self.MultiHead_Embed_Dim) for _ in range(head_dimension)])
         
         # Use a classical feedforward network for the merger layer
-        self.merger = construct_FNN(
-            input_size=Embed_Dim, 
-            layers=[ff_dim, Embed_Dim], 
-            activation=nn.GELU
-        )
-        self.norm1 = nn.LayerNorm([Embed_Dim], elementwise_affine=False)
+        self.merger = construct_FNN([ff_dim, Embed_Dim], activation=nn.GELU)
+        self.norm1 = nn.LayerNorm(Embed_Dim, elementwise_affine=False)
 
     def forward(self, input1):
-        input1_norm = self.norm1(input1)
-        head_result = torch.cat(
-            [
-                m(input1_norm[..., (i * self.MultiHead_Embed_Dim):((i + 1) * self.MultiHead_Embed_Dim)]) 
-                for i, m in enumerate(self.heads)
-            ], 
-            dim=-1
-        )
-        res = self.merger(head_result) + input1  # Apply merger and add residual
+        """
+        Forward pass with quantum-enhanced multi-head attention and classical feedforward network.
+
+        Args:
+            input1 (Tensor): Input tensor.
+
+        Returns:
+            Tensor: Output after applying attention and merger layers.
+        """
+        input1_norm = self.norm1(input1)  # Normalize input
+
+        # Split the input for each head
+        head_inputs = torch.chunk(input1_norm, len(self.heads), dim=-1)
+
+        # Process all heads and concatenate results
+        head_outputs = torch.cat([head(head_input) for head, head_input in zip(self.heads, head_inputs)], dim=-1)
+
+        res = self.merger(head_outputs) + input1  # Apply merger and add residual
         return res
 
 
@@ -114,7 +124,6 @@ class AttentionHead_Hybrid2(nn.Module):
         
         # Attention mechanism using scaled softmax
         self.attention = lambda A, V: torch.bmm(nn.Softmax(dim=-1)(A / MultiHead_Embed_Dim ** 0.5), V)
-        self.flattener = lambda A: A.flatten(0, 1)
 
     def forward(self, input1):
         """
@@ -126,16 +135,22 @@ class AttentionHead_Hybrid2(nn.Module):
         Returns:
             Tensor: Attention output.
         """
-        flat_input = self.flattener(input1)  # Flatten input for quantum processing
+        batch_size, seq_len, embed_dim = input1.shape
+        input1_flat = input1.reshape(batch_size * seq_len, embed_dim)  # Flatten input for quantum processing
 
         # Compute value, query, and key using quantum layers
-        V = self.V(flat_input).reshape(input1.shape)
-        Q = self.Q(flat_input).reshape(*input1.shape[:2])
-        K = self.K(flat_input).reshape(*input1.shape[:2])
+        V = self.V(input1_flat).reshape(batch_size, seq_len, -1)
+        Q = self.Q(input1_flat).reshape(batch_size, seq_len)
+        K = self.K(input1_flat).reshape(batch_size, seq_len)
 
-        # Compute attention weights as squared differences between Q and K
-        A = -(Q.unsqueeze(-2) - K.unsqueeze(-3)) ** 2
-        return self.attention(A, V)
+        # Vectorized computation of attention weights
+        Q_expanded = Q.unsqueeze(2)  # Shape: [batch_size, seq_len, 1]
+        K_expanded = K.unsqueeze(1)  # Shape: [batch_size, 1, seq_len]
+        A = -(Q_expanded - K_expanded) ** 2  # Shape: [batch_size, seq_len, seq_len]
+
+        # Compute attention output
+        output = self.attention(A, V)
+        return output
 
 
 #################### Classical Approach ####################
@@ -151,14 +166,14 @@ class EncoderLayer(nn.Module):
     """
     def __init__(self, Token_Dim, Embed_Dim, head_dimension, ff_dim):
         super(EncoderLayer, self).__init__()
-        self.norm1 = nn.LayerNorm([Embed_Dim], elementwise_affine=False)
-        self.norm2 = nn.LayerNorm([Embed_Dim], elementwise_affine=False)
+        self.norm1 = nn.LayerNorm(Embed_Dim, elementwise_affine=False)
+        self.norm2 = nn.LayerNorm(Embed_Dim, elementwise_affine=False)
         
         # Define multi-head attention layer
         self.MHA = MultiHead(Token_Dim, Embed_Dim, head_dimension)
         
         # Define classical feedforward merger layer
-        self.merger = construct_FNN([ff_dim, Embed_Dim], activation=nn.GELU)
+        self.merger = construct_FNN([Embed_Dim, ff_dim, Embed_Dim], activation=nn.GELU)
 
     def forward(self, input1):
         """
@@ -186,42 +201,14 @@ class MultiHead(nn.Module):
     """
     def __init__(self, Token_Dim, Embed_Dim, head_dimension):
         super(MultiHead, self).__init__()
-        self.MultiHead_Embed_Dim = Embed_Dim // head_dimension
+        self.head_dimension = head_dimension
+        self.embed_per_head_dim = Embed_Dim // head_dimension
         
-        # Create multiple attention heads
-        self.heads = nn.ModuleList([AttentionHead(Token_Dim, self.MultiHead_Embed_Dim) for i in range(head_dimension)])
-
-    def forward(self, input1):
-        """
-        Concatenates the output of each attention head.
-
-        Args:
-            input1 (Tensor): Input tensor.
-
-        Returns:
-            Tensor: Concatenated outputs from all heads.
-        """
-        return torch.cat([m(input1[..., (i * self.MultiHead_Embed_Dim):((i + 1) * self.MultiHead_Embed_Dim)]) for i, m in enumerate(self.heads)], dim=-1)
-
-
-class AttentionHead(nn.Module):
-    """
-    Classical attention head using linear layers for query, key, and value.
-
-    Args:
-        Token_Dim (int): Token embedding dimension.
-        embed_per_head_dim (int): Dimension of each attention head.
-    """
-    def __init__(self, Token_Dim, embed_per_head_dim):
-        super(AttentionHead, self).__init__()
-        # Linear layers for query, key, and value
-        self.Q = nn.Linear(embed_per_head_dim, embed_per_head_dim, bias=False)
-        self.V = nn.Linear(embed_per_head_dim, embed_per_head_dim, bias=False)
-        self.K = nn.Linear(embed_per_head_dim, embed_per_head_dim, bias=False)
-        self.soft = nn.Softmax(dim=-1)
-
-    def attention(self, Q, K, V):
-        return torch.bmm(self.soft(torch.bmm(Q, K.permute(0, 2, 1)) / math.sqrt(Q.shape[-1])), V)
+        # Combined linear layers for all heads
+        self.Q = nn.Linear(Embed_Dim, Embed_Dim, bias=False)
+        self.K = nn.Linear(Embed_Dim, Embed_Dim, bias=False)
+        self.V = nn.Linear(Embed_Dim, Embed_Dim, bias=False)
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, input1):
         """
@@ -231,12 +218,21 @@ class AttentionHead(nn.Module):
             input1 (Tensor): Input tensor.
 
         Returns:
-            Tensor: Output of attention head.
+            Tensor: Output of attention heads concatenated.
         """
-        Q = self.Q(input1)
-        K = self.K(input1)
-        V = self.V(input1)
-        return self.attention(Q, K, V)
+        batch_size, seq_len, embed_dim = input1.size()
+        Q = self.Q(input1).view(batch_size, seq_len, self.head_dimension, self.embed_per_head_dim).transpose(1, 2)
+        K = self.K(input1).view(batch_size, seq_len, self.head_dimension, self.embed_per_head_dim).transpose(1, 2)
+        V = self.V(input1).view(batch_size, seq_len, self.head_dimension, self.embed_per_head_dim).transpose(1, 2)
+
+        # Compute attention scores
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.embed_per_head_dim)
+        weights = self.softmax(scores)
+        context = torch.matmul(weights, V)
+
+        # Concatenate heads
+        context = context.transpose(1, 2).contiguous().view(batch_size, seq_len, -1)
+        return context
 
 
 ############################### Transformer Architecture ###############################
@@ -261,8 +257,9 @@ class Transformer(nn.Module):
         self.embedding = pos_embedding
         
         # Initialize positional embeddings
-        self.pos_embedding = nn.parameter.Parameter(torch.tensor([math.sin(1 / 10000 ** ((i - 1) / Embed_Dim)) if i % 2 == 1 else math.cos(i / 10000 ** ((i - 1) / Embed_Dim)) for i in range(Embed_Dim)]))
-        self.pos_embedding.requires_grad = False
+        self.pos_embedding = nn.Parameter(torch.zeros(1, Token_Dim, Embed_Dim))
+        nn.init.uniform_(self.pos_embedding, -0.1, 0.1)
+        self.pos_embedding.requires_grad = True
 
         # Map attention type to corresponding encoder layer
         attention_dict = {'hybrid2': EncoderLayer_hybrid2, 'classic': EncoderLayer, 'hybrid1': EncoderLayer_hybrid1}
@@ -270,24 +267,25 @@ class Transformer(nn.Module):
             Token_Dim += 1  # Add a class token if required
         
         # Initialize encoder layers
-        self.encoder_layers = nn.ModuleList([attention_dict[attention_type](Token_Dim, Embed_Dim, head_dimension, ff_dim) for i in range(n_layers)])
+        self.encoder_layers = nn.ModuleList([attention_dict[attention_type](Token_Dim, Embed_Dim, head_dimension, ff_dim) for _ in range(n_layers)])
         
         # Initialize class token for 'cls_token' classification type
         if self.cls_type == "cls_token":
-            self.class_token = nn.parameter.Parameter(torch.rand(Embed_Dim, dtype=torch.float32).abs().to('cuda') / math.sqrt(Embed_Dim))
+            self.class_token = nn.Parameter(torch.zeros(1, 1, Embed_Dim))
+            nn.init.uniform_(self.class_token, -0.1, 0.1)
         
         # Embedding layer for input images
         self.embedder = nn.Linear(Image_Dim, Embed_Dim)
         
         # Define final activation method based on classification type
         if self.cls_type == 'max':
-            self.final_act = lambda temp: temp[-1].max(axis=1).values
-        if self.cls_type == 'mean':
-            self.final_act = lambda temp: temp[-1].mean(axis=1)
-        if self.cls_type == 'sum':
-            self.final_act = lambda temp: temp[-1].sum(axis=1)
-        if self.cls_type == 'cls_token':
-            self.final_act = lambda temp: temp[-1][:, 0]
+            self.final_act = lambda temp: temp.max(dim=1).values
+        elif self.cls_type == 'mean':
+            self.final_act = lambda temp: temp.mean(dim=1)
+        elif self.cls_type == 'sum':
+            self.final_act = lambda temp: temp.sum(dim=1)
+        elif self.cls_type == 'cls_token':
+            self.final_act = lambda temp: temp[:, 0]
 
     def forward(self, input1):
         """
@@ -299,25 +297,27 @@ class Transformer(nn.Module):
         Returns:
             Tensor: Final output of the transformer.
         """
+        batch_size = input1.size(0)
+        input_embedded = self.embedder(input1)
+        
         if self.cls_type == "cls_token":
-            cls_token = self.class_token.expand(input1.shape[0], 1, -1)
-            input1_ = torch.cat((cls_token, self.embedder(input1)), axis=1)
+            cls_tokens = self.class_token.expand(batch_size, -1, -1)
+            input1_ = torch.cat((cls_tokens, input_embedded), dim=1)
         else:
-            input1_ = self.embedder(input1)
+            input1_ = input_embedded
         
         # Add positional embedding if enabled
         if self.embedding:
-            temp = [input1_ + self.pos_embedding[None, None, :]]
-        else:
-            temp = [input1_]
-        
+            input1_ = input1_ + self.pos_embedding[:, :input1_.size(1), :]
+
+        x = input1_
         # Pass through encoder layers
-        for i, m in enumerate(self.encoder_layers):
-            temp.append(m(temp[i]))
+        for m in self.encoder_layers:
+            x = m(x)
 
-        return self.final_act(temp)
-
-
+        return self.final_act(x)
+    
+    
 class HViT(nn.Module):
     """
     Hybrid Vision Transformer (HViT) model combining a transformer and a classifier.
@@ -334,63 +334,25 @@ class HViT(nn.Module):
         Embed_Dim (int): Embedding dimension.
         ff_dim (int): Feedforward network dimension.
     """
-    class HViT(nn.Module):
-        def __init__(self, Token_Dim, Image_Dim, head_dimension, n_layers, FC_layers, attention_type, pos_embedding, classifying_type, Embed_Dim, ff_dim):
-            super(HViT, self).__init__()
-            self.transformer = Transformer(
-                Token_Dim, Image_Dim, head_dimension, n_layers, 
-                Embed_Dim, ff_dim, pos_embedding, classifying_type, attention_type
-            )
-            # Specify the input_size explicitly
-            self.classifier = construct_FNN(
-                input_size=Embed_Dim,
-                layers=FC_layers,
-                activation=nn.LeakyReLU
-            )
+    def __init__(self, Token_Dim, Image_Dim, head_dimension, n_layers, FC_layers, attention_type, pos_embedding, classifying_type, Embed_Dim, ff_dim):
+        super(HViT, self).__init__()
+        self.transformer = Transformer(Token_Dim, Image_Dim, head_dimension, n_layers, Embed_Dim, ff_dim, pos_embedding, classifying_type, attention_type)
+        self.classifier = construct_FNN(FC_layers, activation=nn.LeakyReLU)
+    
+    def forward(self, input1):
+        """
+        Forward pass through the HViT model.
+
+        Args:
+            input1 (Tensor): Input tensor.
+
+        Returns:
+            Tensor: Classification output.
+        """
+        x = self.transformer(input1)
+        return self.classifier(x)
     
     
-        def forward(self, input1):
-            """
-            Forward pass through the HViT model.
-    
-            Args:
-                input1 (Tensor): Input tensor.
-    
-            Returns:
-                Tensor: Classification output.
-            """
-            return self.classifier(self.transformer(input1))
-
-def construct_FNN(input_size, layers, activation=nn.GELU, output_activation=None, Dropout=None):
-    """
-    Constructs a fully connected neural network (FNN) with specified activations and dropout.
-
-    Args:
-        input_size (int): Size of the input features.
-        layers (list): List specifying the size of each layer.
-        activation (nn.Module): Activation function to use.
-        output_activation (nn.Module, optional): Output activation function.
-        Dropout (float, optional): Dropout probability.
-
-    Returns:
-        nn.Sequential: Fully connected neural network.
-    """
-    layer_list = []
-    last_size = input_size
-    for size in layers:
-        layer_list.append(nn.Linear(last_size, size))
-        layer_list.append(activation())
-        last_size = size
-    if Dropout:
-        layer_list.insert(len(layer_list) - 2, nn.Dropout(Dropout))
-    if output_activation is not None:
-        layer_list.append(output_activation)
-    # Remove the last activation if not desired
-    return nn.Sequential(*layer_list[:-1])
-
-
-'''
-Old construct_FNN
 def construct_FNN(layers, activation=nn.GELU, output_activation=None, Dropout=None):
     """
     Constructs a fully connected neural network (FNN) with specified activations and dropout.
@@ -404,10 +366,13 @@ def construct_FNN(layers, activation=nn.GELU, output_activation=None, Dropout=No
     Returns:
         nn.Sequential: Fully connected neural network.
     """
-    layer = [j for i in layers for j in [nn.LazyLinear(i), activation()]][:-1]
-    if Dropout:
-        layer.insert(len(layer) - 2, nn.Dropout(Dropout))
+    layer_list = []
+    for i in range(len(layers) - 1):
+        layer_list.append(nn.Linear(layers[i], layers[i + 1]))
+        if i < len(layers) - 2 or output_activation is not None:
+            layer_list.append(activation())
+        if Dropout:
+            layer_list.append(nn.Dropout(Dropout))
     if output_activation is not None:
-        layer.append(output_activation)
-    return nn.Sequential(*layer)
-'''
+        layer_list.append(output_activation())
+    return nn.Sequential(*layer_list)
