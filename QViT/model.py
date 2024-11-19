@@ -335,31 +335,31 @@ class HViT(nn.Module):
         ff_dim (int): Feedforward network dimension.
     """
     class HViT(nn.Module):
-    def __init__(self, Token_Dim, Image_Dim, head_dimension, n_layers, FC_layers, attention_type, pos_embedding, classifying_type, Embed_Dim, ff_dim):
-        super(HViT, self).__init__()
-        self.transformer = Transformer(
-            Token_Dim, Image_Dim, head_dimension, n_layers, 
-            Embed_Dim, ff_dim, pos_embedding, classifying_type, attention_type
-        )
-        # Specify the input_size explicitly
-        self.classifier = construct_FNN(
-            input_size=Embed_Dim,
-            layers=FC_layers,
-            activation=nn.LeakyReLU
-        )
-
-
-    def forward(self, input1):
-        """
-        Forward pass through the HViT model.
-
-        Args:
-            input1 (Tensor): Input tensor.
-
-        Returns:
-            Tensor: Classification output.
-        """
-        return self.classifier(self.transformer(input1))
+        def __init__(self, Token_Dim, Image_Dim, head_dimension, n_layers, FC_layers, attention_type, pos_embedding, classifying_type, Embed_Dim, ff_dim):
+            super(HViT, self).__init__()
+            self.transformer = Transformer(
+                Token_Dim, Image_Dim, head_dimension, n_layers, 
+                Embed_Dim, ff_dim, pos_embedding, classifying_type, attention_type
+            )
+            # Specify the input_size explicitly
+            self.classifier = construct_FNN(
+                input_size=Embed_Dim,
+                layers=FC_layers,
+                activation=nn.LeakyReLU
+            )
+    
+    
+        def forward(self, input1):
+            """
+            Forward pass through the HViT model.
+    
+            Args:
+                input1 (Tensor): Input tensor.
+    
+            Returns:
+                Tensor: Classification output.
+            """
+            return self.classifier(self.transformer(input1))
 
 def construct_FNN(input_size, layers, activation=nn.GELU, output_activation=None, Dropout=None):
     """
