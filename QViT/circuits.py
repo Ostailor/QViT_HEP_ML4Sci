@@ -234,12 +234,6 @@ def qk_ansatz(circuit, data, parameters, nqubits):
     for i in range(nqubits - 1):
         circuit.cnot(i, i + 1)
 
-def v_ansatz(circuit, data, parameters, nqubits):
-    for i in range(nqubits):
-        circuit.rx(i, theta=parameters[i])
-    for i in range(nqubits - 1):
-        circuit.cz(i, i + 1)
-
 def measure_query_key(data, parameters, nqubits):
     circuit = tc.Circuit(nqubits)
     encode_token(circuit, data, nqubits)
