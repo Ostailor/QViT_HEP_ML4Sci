@@ -334,10 +334,20 @@ class HViT(nn.Module):
         Embed_Dim (int): Embedding dimension.
         ff_dim (int): Feedforward network dimension.
     """
+    class HViT(nn.Module):
     def __init__(self, Token_Dim, Image_Dim, head_dimension, n_layers, FC_layers, attention_type, pos_embedding, classifying_type, Embed_Dim, ff_dim):
         super(HViT, self).__init__()
-        self.transformer = Transformer(Token_Dim, Image_Dim, head_dimension, n_layers, Embed_Dim, ff_dim, pos_embedding, classifying_type, attention_type)
-        self.classifier = construct_FNN(FC_layers, activation=nn.LeakyReLU)
+        self.transformer = Transformer(
+            Token_Dim, Image_Dim, head_dimension, n_layers, 
+            Embed_Dim, ff_dim, pos_embedding, classifying_type, attention_type
+        )
+        # Specify the input_size explicitly
+        self.classifier = construct_FNN(
+            input_size=Embed_Dim,
+            layers=FC_layers,
+            activation=nn.LeakyReLU
+        )
+
 
     def forward(self, input1):
         """
