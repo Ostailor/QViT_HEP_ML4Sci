@@ -50,7 +50,7 @@ Updated
 
 #### **Data Description**
 The dataset used in this project is the **MNIST** dataset, which consists of grayscale images of handwritten digits (0-9). Each image has the following characteristics:
-- **Source**: Downloaded automatically from PyTorch's `torchvision.datasets.MNIST`.
+- **Source**: Downloaded from PyTorch's `torchvision.datasets.MNIST`.
 - **Size**: 
   - Training set contains 60,000 images.
   - Each image has an original resolution of 28x28 pixels.
