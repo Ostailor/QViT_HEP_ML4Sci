@@ -46,17 +46,30 @@ Updated
 
 ---
 
-## 3. Dataset and Preprocessing
+### **3. Dataset and Preprocessing**
 
-### **Data Description**
-- **Source**: The dataset used is MNIST
+#### **Data Description**
+The dataset used in this project is the **MNIST** dataset, which consists of grayscale images of handwritten digits (0-9). Each image has the following characteristics:
+- **Source**: Downloaded automatically from PyTorch's `torchvision.datasets.MNIST`.
 - **Size**: 
-- **Features**: 
+  - Training set contains 60,000 images.
+  - Each image has an original resolution of 28x28 pixels.
+- **Labels**: Each image is labeled with one of 10 classes corresponding to the digit it represents.
 
-### **Preprocessing Steps**
-- Normalization: Ensures data consistency by scaling values.
-- Dimensionality Reduction: Reduces data complexity for quantum circuit compatibility.
-- Tokenization: Converts inputs into embeddings for the transformer.
+#### **Preprocessing Steps**
+1. **Image Transformation**:
+   - Resized the original 28x28 images to 14x14 pixels to reduce computational complexity.
+   - Converted the images to `torch.float64` for compatibility with the quantum layers.
+   - Normalized pixel values to the range `[0,1]` to standardize input.
+
+   Transformations applied:
+   ```python
+   transforms.Compose([
+       transforms.Resize((14,14)),
+       transforms.ConvertImageDtype(torch.float64),
+       transforms.Normalize(0,1)
+   ])```
+
 
 ---
 
