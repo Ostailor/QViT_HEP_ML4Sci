@@ -103,4 +103,4 @@ This work highlights the practical integration of quantum computing into machine
 
 ## 6. Reference
 
-- Hybrid Quantum Vision Transformers for Event Classification in High Energy Physics [https://arxiv.org/abs/2402.00776]
+- [Hybrid Quantum Vision Transformers for Event Classification in High Energy Physics](https://arxiv.org/abs/2402.00776)
