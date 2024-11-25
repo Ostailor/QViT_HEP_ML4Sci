@@ -1,114 +1,93 @@
 # Quantum Vision Transformer (HViT)
 
-This project implements a **Hybrid Vision Transformer (HViT)** that integrates quantum circuits into transformer-based architectures for enhanced attention mechanisms and classification tasks. The project consists of many main files with two edited being:
+## 1. Introduction
 
-1. **`circuits.py`**: Defines quantum circuit architectures and their integration with PyTorch.
-2. **`model.py`**: Implements the transformer and HViT model using hybrid attention layers.
+### **Motivation**
+As the demand for advanced machine learning solutions grows, incorporating quantum computing offers a promising pathway for improving computation and learning efficiency. This project addresses the challenge of enhancing attention mechanisms in transformer models, critical for tasks like image recognition, by leveraging quantum computing.
 
----
+### **Objectives**
+- Develop a hybrid vision transformer (HViT) combining quantum and classical approaches for attention mechanisms.
+- Demonstrate the feasibility of quantum-enhanced transformers in real-world datasets.
+- Compare hybrid and classical approaches to identify performance advantages.
 
-## **1. circuits.py**
-
-This file focuses on quantum circuit architectures and their use as differentiable modules within neural networks.
-
-### **Key Components**
-
-### **1.1 QLayer**
-The `QLayer` class serves as a wrapper to convert quantum circuits into differentiable PyTorch modules. This enables backpropagation through quantum circuits.
-
-- **`__init__`**: Initializes the quantum layer with trainable parameters.
-- **`forward`**: Defines the forward pass by applying the quantum circuit to input data.
-
-### **1.2 Quantum Circuits**
-Various quantum circuits are implemented for encoding data and computing attention:
-
-- **`loader_bs`**: Prepares quantum states using beam splitters.
-- **`mmult_bs`**: Performs matrix multiplication with beam splitter circuits.
-- **`rbs`**: Applies Hadamard and controlled rotation gates.
-- **`vector_loader` & `matrix_loader`**: Encode vectors and matrices into quantum states.
-- **`compute_attention_element`**: Computes individual attention scores using quantum states.
-- **`compute_attention`**: Aggregates attention scores across multiple elements.
-
-### **1.3 Attention Measurement Circuits**
-Quantum circuits for measuring query, key, and value embeddings in the attention mechanism:
-
-- **`measure_query_key`**: Encodes query and key data, then computes expectations.
-- **`measure_value`**: Encodes value data and computes its quantum expectation.
+### **Quantum Advantage**
+Quantum machine learning is advantageous due to its ability to handle high-dimensional data encoding, fast parallel computations, and the potential to uncover patterns inaccessible through classical methods. The integration of quantum circuits into transformers enhances attention computations, enabling more efficient and accurate learning.
 
 ---
 
-## **2. model.py**
+## 2. Methods
 
-This file builds the hybrid and classical transformer architectures, integrating quantum-enhanced attention mechanisms.
+### **Framework and Tools**
+This project uses:
+- **TensorCircuit** for quantum circuit simulations.
+- **PyTorch** for model building and training.
+- **JAX** as a backend for quantum circuit optimizations.
 
-### **Key Components**
+### **Model Architecture**
+The HViT model integrates quantum-enhanced attention heads into a transformer architecture:
+1. **Quantum Circuits**: Encode data and compute query-key-value embeddings.
+2. **Hybrid Layers**: Combine quantum circuits with classical feedforward networks.
+3. **Transformer**: Leverages multi-head attention with positional embeddings.
 
-### **2.1 Encoder Layers**
-Three encoder types are implemented:
+*Diagram Placeholder*: [Insert a diagram of the HViT architecture here]
 
-1. **`EncoderLayer_hybrid1`**: Uses quantum circuits for multi-head attention and the feedforward merger layer.
-2. **`EncoderLayer_hybrid2`**: Combines quantum-enhanced attention with a classical feedforward network.
-3. **`EncoderLayer`**: Implements classical multi-head attention and feedforward network.
+### **Quantum Circuits**
+- **Data Encoding**: Implements beam splitters and rotation gates for encoding.
+- **Attention Mechanism**: Uses quantum circuits to compute attention scores based on the inner products of query and key states.
+- **Measurement**: Outputs expectation values representing attention weights.
 
-### **2.2 Attention Mechanisms**
-The **`AttentionHead_Hybrid2`** class calculates attention using quantum layers:
-
-- **`QLayer`** for computing query, key, and value.
-- Scaled softmax for attention computation.
-
-### **2.3 Transformer Architecture**
-The **`Transformer`** class integrates positional embeddings, encoder layers, and attention mechanisms. It supports both hybrid and classical attention mechanisms and multiple classification types (e.g., CLS token-based).
-
-### **2.4 Hybrid Vision Transformer (HViT)**
-The **`HViT`** class extends the transformer with a fully connected neural network for classification:
-
-- Combines quantum-enhanced attention with classical classification layers.
-- Supports configurable embedding dimensions, layer counts, and attention types.
-
-### **2.5 Utilities**
-- **`construct_FNN`**: Dynamically builds fully connected layers for classical processing.
-- Positional embedding for tokenized data.
+*Circuit Diagram Placeholder*: [Insert simplified quantum circuit diagram here]
 
 ---
 
-## **How It Works**
+## 3. Dataset and Preprocessing
 
-1. **Quantum Circuits**: Quantum circuits encode input data and compute attention scores in the transformer model.
-2. **Hybrid Attention**: Combines quantum attention layers with classical layers for scalability and robustness.
-3. **Classification**: The HViT model processes tokenized data and outputs predictions via a fully connected classifier.
+### **Data Description**
+- **Source**: The dataset used is MNIST
+- **Size**: 
+- **Features**: 
 
----
-
-## **Dependencies**
-The project relies on:
-- PyTorch
-- TensorCircuit (for quantum circuits)
-- JAX (for backend computation)
+### **Preprocessing Steps**
+- Normalization: Ensures data consistency by scaling values.
+- Dimensionality Reduction: Reduces data complexity for quantum circuit compatibility.
+- Tokenization: Converts inputs into embeddings for the transformer.
 
 ---
 
-## **Usage**
+## 4. Results
 
-1. Define a quantum circuit in `circuits.py`.
-2. Integrate the circuit in `model.py` using `QLayer`.
-3. Customize the transformer architecture in the `HViT` class.
-4. Train the model using PyTorch-compatible datasets.
+### **Simulations**
+- **Simulation**: We used a CPU during training and testing. The changes we made enabled us to increase accuracy in significantly fewer epochs than what was required originally.
 
-An example of usage can be found in Final.ipynb.
+### **Key Findings**
+- Performance comparisons between old and new circuits as well as vectorization of computing.
+- Below is a visualization of accuracy and loss trends during training.
 
+<img width="439" alt="Screenshot 2024-11-24 at 9 40 48 PM" src="https://github.com/user-attachments/assets/b15e77cd-915f-42fd-aad3-d6cf0e5b9283">
+
+
+### **Performance Metrics**
+- **Accuracy**: Measure of correct predictions.
+- **Wrongly predicted ratio**: 
+- **Computation Time**: Old Quantum Circuit versus new Quantum Circuit.
 
 ---
 
-## **Results**
+## 5. Conclusion
 
-The result of the changes in the two files above led to a speed improvement of 33% with a training and validation accuracy of 25% for 10 epochs as well as a 50% decrease in the wrongly predicted ratio.
+### **Summary**
+The HViT model demonstrates the potential of hybrid quantum-classical transformers for improving attention mechanisms, yielding competitive performance on benchmark datasets.
+
+### **Impact**
+This work highlights the practical integration of quantum computing into machine learning, paving the way for advancements in data-driven quantum technologies specifically with large datasets.
+
+### **Future Work**
+- Explore larger datasets and more efficient quantum circuits.
+- Implement the model on actual QPUs for further validation.
+- Investigate the scalability of hybrid architectures to larger transformers.
 
 ---
 
-This architecture bridges the gap between classical and quantum machine learning, offering a versatile framework for hybrid quantum-classical computing.
+## 6. References
 
-
-
-
-License
-This project is open-source and available for modification and distribution under the MIT License.
+- 
