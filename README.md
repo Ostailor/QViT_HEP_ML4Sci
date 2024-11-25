@@ -29,14 +29,18 @@ The HViT model integrates quantum-enhanced attention heads into a transformer ar
 2. **Hybrid Layers**: Combine quantum circuits with classical feedforward networks.
 3. **Transformer**: Leverages multi-head attention with positional embeddings.
 
-*Diagram Placeholder*: [Insert a diagram of the HViT architecture here]
-
 ### **Quantum Circuits**
 - **Data Encoding**: Implements beam splitters and rotation gates for encoding.
 - **Attention Mechanism**: Uses quantum circuits to compute attention scores based on the inner products of query and key states.
 - **Measurement**: Outputs expectation values representing attention weights.
 
-*Circuit Diagram Placeholder*: [Insert simplified quantum circuit diagram here]
+Original
+<img width="600" alt="Screenshot 2024-11-24 at 10 01 06 PM" src="https://github.com/user-attachments/assets/5ea55500-f9ed-43ac-910a-83e77b7d3652">
+
+
+Upgraded
+<img width="600" alt="Screenshot 2024-11-24 at 10 05 54 PM" src="https://github.com/user-attachments/assets/ddfe6cec-ccf6-437c-8422-a67d66bb39c4">
+
 
 ---
 
@@ -63,6 +67,11 @@ The HViT model integrates quantum-enhanced attention heads into a transformer ar
 - Performance comparisons between old and new circuits as well as vectorization of computing.
 - Below is a visualization of accuracy and loss trends during training.
 
+Original
+<img width="439" alt="Screenshot 2024-11-24 at 9 41 39 PM" src="https://github.com/user-attachments/assets/fc6f8ed5-792b-4a57-b992-590b1a3645ec">
+
+
+Updated
 <img width="439" alt="Screenshot 2024-11-24 at 9 40 48 PM" src="https://github.com/user-attachments/assets/b15e77cd-915f-42fd-aad3-d6cf0e5b9283">
 
 
