@@ -68,7 +68,7 @@ The dataset used in this project is the **MNIST** dataset, which consists of gra
        transforms.Resize((14,14)),
        transforms.ConvertImageDtype(torch.float64),
        transforms.Normalize(0,1)
-   ])```
+   ])
 
 
 ---
