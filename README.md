@@ -39,7 +39,7 @@ Original
 <img width="600" alt="Screenshot 2024-11-24 at 10 01 06 PM" src="https://github.com/user-attachments/assets/5ea55500-f9ed-43ac-910a-83e77b7d3652">
 
 
-Upgraded
+Updated
 
 <img width="600" alt="Screenshot 2024-11-24 at 10 05 54 PM" src="https://github.com/user-attachments/assets/ddfe6cec-ccf6-437c-8422-a67d66bb39c4">
 
@@ -70,17 +70,19 @@ Upgraded
 - Below is a visualization of accuracy and loss trends during training.
 
 Original
+
 <img width="439" alt="Screenshot 2024-11-24 at 9 41 39 PM" src="https://github.com/user-attachments/assets/fc6f8ed5-792b-4a57-b992-590b1a3645ec">
 
 
 Updated
+
 <img width="439" alt="Screenshot 2024-11-24 at 9 40 48 PM" src="https://github.com/user-attachments/assets/b15e77cd-915f-42fd-aad3-d6cf0e5b9283">
 
 
 ### **Performance Metrics**
 - **Accuracy**: Measure of correct predictions.
 - **Wrongly predicted ratio**: 
-- **Computation Time**: Old Quantum Circuit versus new Quantum Circuit.
+- **Computation Time**: For the original code it took approximately 15 minutes for 10 epochs. For the updated code it took 10 minutes for 10 epochs.
 
 ---
 
@@ -99,6 +101,6 @@ This work highlights the practical integration of quantum computing into machine
 
 ---
 
-## 6. References
+## 6. Reference
 
-- 
+- Hybrid Quantum Vision Transformers for Event Classification in High Energy Physics [https://arxiv.org/abs/2402.00776]
