@@ -111,6 +111,7 @@ This work highlights the practical integration of quantum computing into machine
 - Explore larger datasets and more efficient quantum circuits.
 - Implement the model on actual QPUs for further validation.
 - Investigate the scalability of hybrid architectures to larger transformers.
+- Integrate Reinforcement Learning into the model.
 
 ---
 
