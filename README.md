@@ -15,7 +15,7 @@ Quantum machine learning is advantageous due to its ability to handle high-dimen
 
 ---
 
-Scroll down to number 6 to see ways to update the model.
+Scroll down to number 5 to see ways to update the model.
 
 ---
 
