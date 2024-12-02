@@ -15,6 +15,10 @@ Quantum machine learning is advantageous due to its ability to handle high-dimen
 
 ---
 
+##Scroll down to number 6 to see ways to update the model.
+
+---
+
 ## 2. Methods
 
 ### **Framework and Tools**
@@ -114,7 +118,33 @@ This work highlights the practical integration of quantum computing into machine
 - Integrate Reinforcement Learning into the model.
 
 ---
+## 6. What has been done so far with RL. 
+1. **Policy Gradient-Based RL Module**:
+   - A policy gradient algorithm was added to the training pipeline.
+   - This module acted as a feedback loop, using rewards to guide hyperparameter adjustments dynamically during training.
 
-## 6. Reference
+2. **Reward Function Design**:
+   - A reward function was created based on performance metrics such as accuracy and loss reduction, ensuring meaningful feedback for the RL agent.
+
+3. **Exploration Mechanism**:
+   - An exploration mechanism was incorporated to allow the RL module to test a range of parameter values and identify optimal configurations dynamically.
+
+4. **Pipeline Integration**:
+   - The RL module was integrated into the existing training pipeline to enable real-time adjustments of hyperparameters during the training process.
+
+## Challenges Encountered
+
+1. **Performance Bottlenecks**:
+   - The computational overhead introduced by the RL module, including reward calculations and parameter adjustments, caused frequent timeouts during training.
+
+2. **Excessive Training Duration**:
+   - The need for real-time adjustments significantly increased training time, making the approach impractical for larger datasets or models.
+
+3. **Optimization Complexity**:
+   - Attempts to streamline the reward function and simplify the RL component were insufficient to resolve the timing and performance issues.
+
+---
+
+## 7. Reference
 
 - [Hybrid Quantum Vision Transformers for Event Classification in High Energy Physics](https://arxiv.org/abs/2402.00776)
